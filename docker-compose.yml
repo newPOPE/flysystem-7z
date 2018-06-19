@@ -1,0 +1,11 @@
+version: "3.3"
+services:
+  default:
+    build:
+      context: .
+    volumes:
+      - .:/src
+    working_dir: /src
+    tty: true
+    stdin_open: true
+    command: bash
