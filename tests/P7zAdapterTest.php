@@ -45,11 +45,17 @@ class P7zAdapterTest extends \PHPUnit\Framework\TestCase {
     $this->assertFalse($adapter->has('WRIX/WRIX/WRIST RIGHT/SCOUT 3-PLANE RT. - 2/IM-0001-1001.dcm'));
   }
 
-  public function testWrite () {
+  public function testArchive () {
     $adapter = new \AdamStipak\Flysystem\Adapter\P7zAdapter(__DIR__ . '/temp/foo.zip');
 
-    $adapter->write('/baz/foo.txt', "foo bar", new \League\Flysystem\Config);
-    $this->assertTrue($adapter->has('foo.txt'));
-    $this->assertEquals('foo bar', $adapter->read('foo.txt'));
+    $adapter->write('baz/foo.txt', "foo bar", new \League\Flysystem\Config);
+    $this->assertTrue($adapter->has('baz/foo.txt'));
+    $this->assertEquals('foo bar', $adapter->read('baz/foo.txt'));
+
+    $adapter->delete('baz/foo.txt');
+    $this->assertFalse($adapter->has('baz/foo.txt'));
+
+    $adapter->write('baz/foo.txt', "baz", new \League\Flysystem\Config);
+    $this->assertEquals('baz', $adapter->read('baz/foo.txt'));
   }
 }

@@ -51,7 +51,7 @@ class P7zAdapter extends AbstractAdapter {
     $tempfile = $tempdir . "/" . $path;
     mkdir(Util::dirname($tempfile), 0600, true);
     file_put_contents($tempfile, $contents);
-    $process = new Process("7z a {$this->location} {$tempfile}");
+    $process = new Process("cd \"{$tempdir}\" && 7z a -tzip \"{$this->location}\" .");
     $this->runProcess($process);
 
     unlink($tempfile);
@@ -60,23 +60,43 @@ class P7zAdapter extends AbstractAdapter {
   }
 
   public function update ($path, $contents, Config $config) {
-    // TODO: Implement update() method.
+    $path = $this->applyPathPrefix($path);
+    $tempdir = tempnam(sys_get_temp_dir(), "flysystem-7z");
+    if (file_exists($tempdir)) {
+      unlink($tempdir);
+    }
+    mkdir($tempdir);
+    if (!is_dir($tempdir)) {
+      throw new \LogicException("Cannot create tempdir {$tempdir}");
+    }
+
+    $tempfile = $tempdir . "/" . $path;
+    mkdir(Util::dirname($tempfile), 0600, true);
+    file_put_contents($tempfile, $contents);
+    $process = new Process("cd \"{$tempdir}\" && 7z u \"{$this->location}\" .");
+    $this->runProcess($process);
+
+    unlink($tempfile);
+
+    return compact('path', 'contents');
   }
 
   public function rename ($path, $newpath) {
-    // TODO: Implement rename() method.
+    throw new \LogicException('Not supported!');
   }
 
   public function delete ($path) {
-    // TODO: Implement delete() method.
+    $path = $this->applyPathPrefix($path);
+    $process = new Process("7z d \"{$this->location}\" \"{$path}\"");
+    $this->runProcess($process);
   }
 
   public function deleteDir ($dirname) {
-    // TODO: Implement deleteDir() method.
+    throw new \LogicException('Not supported!');
   }
 
   public function createDir ($dirname, Config $config) {
-    // TODO: Implement createDir() method.
+    throw new \LogicException('Not supported!');
   }
 
   public function has ($path) {
@@ -105,33 +125,31 @@ class P7zAdapter extends AbstractAdapter {
   }
 
   public function getMetadata ($path) {
-    // TODO: Implement getMetadata() method.
+    $path = $this->applyPathPrefix($path);
+    $process = new Process("7z l -slt \"{$this->location}\" \"{$path}\"");
+    $this->runProcess($process);
+
+    $list = $this->parseListOutput($process->getOutput());
+
+    return $list[0];
   }
 
   public function getSize ($path) {
-    $path = $this->applyPathPrefix($path);
-    $process = new Process("7z l -slt \"{$this->location}\" \"{$path}\"");
-    $this->runProcess($process);
+    $item = $this->getMetadata($path);
 
-    $list = $this->parseListOutput($process->getOutput());
-
-    return $list[0]['size'];
+    return $item['size'];
   }
 
   public function getMimetype ($path) {
-    $path = $this->applyPathPrefix($path);
-    $process = new Process("7z l -slt \"{$this->location}\" \"{$path}\"");
-    $this->runProcess($process);
+    $item = $this->getMetadata($path);
 
-    $list = $this->parseListOutput($process->getOutput());
-
-    $path = $list[0]['name'];
-
-    return Util::guessMimeType($path, $this->read($path));
+    return Util::guessMimeType($item['name'], $this->read($path));
   }
 
   public function getTimestamp ($path) {
+    $item = $this->getMetadata($path);
 
+    return $item['mtime'];
   }
 
   private function parseListOutput (string $output) {
