@@ -49,7 +49,7 @@ class P7zAdapter extends AbstractAdapter {
     }
 
     $tempfile = $tempdir . "/" . $path;
-    mkdir(Util::dirname($tempfile), 0600, true);
+    mkdir(Util::dirname($tempfile), 0755, true);
     file_put_contents($tempfile, $contents);
     $process = new Process("cd \"{$tempdir}\" && 7z a -tzip \"{$this->location}\" .");
     $this->runProcess($process);
@@ -100,6 +100,10 @@ class P7zAdapter extends AbstractAdapter {
   }
 
   public function has ($path) {
+    if (!file_exists($this->location)) {
+      return false;
+    }
+
     $path = $this->applyPathPrefix($path);
     $process = new Process("7z l -slt \"{$this->location}\" \"{$path}\"");
     $this->runProcess($process);
